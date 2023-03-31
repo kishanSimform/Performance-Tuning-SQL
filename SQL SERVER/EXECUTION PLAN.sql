@@ -24,7 +24,6 @@ SELECT * FROM people
 
 SELECT TOP 500 * FROM people ORDER BY id
 
-
 -- CLUSTERED INDEX SEEK
 SELECT * FROM people WHERE id BETWEEN 0 AND 500
 SELECT * FROM people WHERE id <= 500
@@ -35,9 +34,8 @@ SELECT First_Name FROM people where First_Name like 'Al%'
 CREATE NONCLUSTERED INDEX non_clu_firstname_lastname 
 ON people(First_Name, Last_Name)
 
-
 -- NON CLUSTERED INDEX SCAN
-SELECT id, First_Name, Last_Name FROM people
+SELECT First_Name, Last_Name FROM people
 
 
 -- NON CLUSTERED INDEX SEEK
@@ -45,7 +43,7 @@ SELECT id, First_Name, Last_Name FROM people WHERE First_Name = 'John' and Last_
 
 
 -- NON CLUSTERED INDEX SEEK (With KEY LOOKUP)
-SELECT * FROM people WHERE First_Name = 'John' and Last_Name = 'Gates'
+		SELECT First_Name, Last_Name, Sex FROM people WHERE First_Name = 'John' and Last_Name = 'Gates'
 
 
 -- Sort (Order by) is Expensive
@@ -73,3 +71,40 @@ SELECT category_id, length FROM film INNER JOIN film_category ON film.film_id = 
 
 -- Optimizer knows the best join for each query, it will decide which is best and use it.
 
+
+-- COVERING INDEX
+
+-- A covering index is an index that contains all columns referenced in the query. A clustered index is a covering index by definition, but this is used for non clusrtered indexes.
+-- If it is covering index than SQL engine does not have to look up in clustered index.
+
+SELECT id, First_Name, Last_Name FROM people
+
+-- It is an example of covering index scan, because we have clustered index on First name and Last name column, so it does not contain lookup.
+SELECT First_Name, Last_Name, Job_Title FROM people where First_Name = 'John' and Last_Name = 'Gates'
+
+
+-- INDEXES WITH INCLUDED COLUMNS
+
+CREATE NONCLUSTERED INDEX non_clu_firstname_lastname_job 
+ON people(First_Name, Last_Name) INCLUDE (Job_Title)
+
+SELECT id, First_Name, Last_Name, Job_Title FROM people where First_Name = N'Taylor' and Last_Name = N'Reed'
+
+
+
+-- Usage of Function in WHERE clause make query costly
+
+SELECT id, First_Name, Last_Name FROM people WHERE First_Name = 'Adam' -- (Estimated subtree cost - 0.0068481)
+
+SELECT id, First_Name, Last_Name FROM people WHERE LTRIM(RTRIM(First_Name)) = 'Adam' -- (Estimated subtree cost - 5.22476)
+
+-- For eliminate this cost or reduce cost, we can do one thing.
+-- Create a new column for which we want to use in where clause and create non clustered index on it.
+
+/*
+ALTER TABLE people 
+ADD first_name_trim AS LTRIM(RTRIM(First_Name))
+
+CREATE NON CLUSTERED INDEX non_clu_first_name_trim
+ON people (first_name_trim, <other columns>)
+*/
