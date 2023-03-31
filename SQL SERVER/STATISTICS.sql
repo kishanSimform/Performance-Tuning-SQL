@@ -11,3 +11,6 @@ ON q.query_id = p.query_id
 
 -- By default SQL Server create and update statistics on index
 DBCC SHOW_STATISTICS('people', 'PK_people')
+
+-- Free Cache
+DBCC FREEPROCCACHE
