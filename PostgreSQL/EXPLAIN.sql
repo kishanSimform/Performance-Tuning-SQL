@@ -53,7 +53,7 @@ SELECT * FROM film;
 
 EXPLAIN ANALYZE
 SELECT * FROM film
-WHERE film_id > 40;
+WHERE film_id < 40;
 
 EXPLAIN ANALYZE
 SELECT * FROM film
@@ -74,4 +74,86 @@ EXPLAIN TIMING
 
 EXPLAIN FORMAT
 	DISPLAYS RESULT IN TEXT OR ANY DIFFERENT FORMAT 
+*/
+
+EXPLAIN ANALYZE
+SELECT * FROM film
+WHERE length = 100;
+
+CREATE INDEX idx_film_length ON film(length);
+
+DROP INDEX idx_film_length;
+
+-- Multicolumn Indexes (Maximum 32 columns)
+
+/*
+Cover Index 
+	Index containing all columns needed for a query
+*/
+
+EXPLAIN ANALYZE
+SELECT film_id, title, length, rating, rental_rate
+FROM filM
+WHERE length BETWEEN 60 AND 100 AND rating = 'G';
+
+CREATE INDEX idx_film_length_rating ON film(length, rating); 
+CREATE INDEX idx_film_rating_length ON film(rating, length); 
+
+DROP INDEX idx_film_length_rating
+
+CREATE INDEX idx_film_cover ON film(rating, length, title, rental_rate)
+
+EXPLAIN ANALYZE 
+SELECT title, length, rating, rental_rate
+FROM film 
+WHERE length BETWEEN 60 AND 70 AND rating = 'G';
+
+
+-- REINDEX
+REINDEX INDEX idx_film_cover;
+REINDEX TABLE film;
+
+-- UNIQUE INDEX
+-- ENFORCE UNIQUENESS OF A COLUMN'S VALUE
+
+-- POSTGRESQL AUTOMATICALLY CREATES A UNIQUE INDEX WHEN A UNIQUE CONSTRAINT OR PRIMARY KEY IS DEFINED ON THE TABLE.
+
+-- DISPLAYS ALL THE INDEX OF FILM TABLE
+SELECT idx.indrelid :: regclass AS table_name,
+	i.relname AS index_name,
+	idx.indisunique AS is_unique,
+	idx.indisprimary AS is_primary
+FROM pg_index AS idx JOIN pg_class AS i
+ON i.oid = idx.indexrelid
+WHERE idx.indrelid = 'film' :: regclass;
+
+
+-- FUNCTION IS WHERE CLUASE IS COSTLY 
+EXPLAIN ANALYZE
+SELECT * FROM film
+WHERE lower(title) = lower('arizona bang');
+
+CREATE INDEX film_title_lower ON film(lower(title));
+
+
+-- PARTIAL INDEX
+CREATE INDEX film_less_hour ON film(length)
+WHERE length < 60;
+
+EXPLAIN ANALYZE
+SELECT * FROM film
+WHERE length = 40;
+
+EXPLAIN ANALYZE
+SELECT * FROM film
+WHERE length = 80;
+
+
+/*
+Tips For Populate Large Database
+
+- Disabling autocommit will improve performance for large amount of INSERTS.
+- Copy statement is the fastest way to insert or retrive data in various format.
+- Always drop indexes before large data import and recreate indexes afterword.
+- Analyze tables to improve overall performance with updating statistics.
 */
